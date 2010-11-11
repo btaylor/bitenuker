@@ -1,0 +1,5 @@
+bitenuker is a scanner and parser that converts Tomboy's flavor of Markdown to
+HTML (and eventually Tomboy Note format).  It's mostly a proof-of-concept at
+this point, and needs a Liz Lemon amount of love.
+
+bitenuker is released under the AGPL, because I said so.
