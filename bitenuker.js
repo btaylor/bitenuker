@@ -18,6 +18,79 @@
 // TODO: Jquery-ize
 // TODO: More 30 Rock quotes
 
+function HtmlOutputStream () {
+    this._init ();
+}
+
+HtmlOutputStream.prototype = {
+    _init : function () {
+        this._output = '';
+    },
+
+    toString : function () {
+        return this._output;
+    },
+
+    append : function () {
+        this._output += Array.prototype.slice.call (arguments).join ('');
+    },
+
+    appendSpaces : function (count) {
+        this.append (' ', new Array (count - 1).join ('&nbsp;'));
+    },
+
+    pageBreak : function () {
+        return '<br>';
+    },
+
+    bold : function (inner) {
+        return ['<strong>', inner, '</strong>'].join ();
+    },
+
+    italic : function (inner) {
+        return ['<em>', inner, '</em>'].join ();
+    },
+
+    strikeout : function (inner) {
+        return ['<strikeout>', inner, '</strikeout>'].join ();
+    },
+
+    highlight : function (inner) {
+        return [
+            '<span style="background-color: rgb(255, 255, 0);">',
+            inner, '</span>'
+        ].join ();
+    },
+
+    code : function (inner) {
+        return ['<tt>', inner, '</tt>'].join ();
+    },
+
+    small : function (inner) {
+        return ['<small>', inner, '</small>'].join ();
+    },
+
+    normal : function (inner) {
+        return inner;
+    },
+
+    big : function (inner) {
+        return ['<h2>', inner, '</h2>'].join ();
+    },
+
+    huge : function (inner) {
+        return ['<h1>', inner, '</h1>'].join ();
+    },
+
+    unorderedList : function () {
+        return ['<ul>', Array.prototype.slice.call (arguments).join (''), '</ul>'].join ();
+    },
+
+    listItem : function (inner) {
+        return ['<li>', Array.prototype.slice.call (arguments).join(''), '</li>'].join ();
+    }
+};
+
 function BiteNuker () {
     this._init ();
 }
@@ -123,8 +196,8 @@ BiteNuker.prototype = {
         return tokens;
     },
 
-    _parseMarkdownRecursive : function (tokens, i, termini) {
-        var output = '';
+    _parseMarkdownRecursive : function (streamFactory, tokens, i, termini) {
+        var outputStream = streamFactory ();
         var token = null;
 
         var insideAsterisk = false;
@@ -141,7 +214,7 @@ BiteNuker.prototype = {
                 if (token.type == terminus.type
                     && token.count == terminus.count) {
                     return {
-                        output: output, index: i, reachedTerminus: true, token: token,
+                        output: outputStream, index: i, reachedTerminus: true, token: token,
                     };
                 }
             }
@@ -159,35 +232,38 @@ BiteNuker.prototype = {
                     && tokens[i + 1].type == this.MarkdownTokens.Whitespace) {
                     // Advance twice to eat our character and the next whitespace
                     // character.
-                    var ret = this._parseMarkdownRecursive (tokens, i + 2, [
+                    var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 2, [
                         { type: token.type, count: token.count },
                         { type: this.MarkdownTokens.Newline, count: 1 },
                     ]);
 
                     // If we found another asterisk, it's not a list
                     if (ret.token.type != this.MarkdownTokens.Asterisk) {
-                        output += '<ul>';
-
                         // Disregard whether or not we hit the terminus, since EOL is
                         // also a valid terminus.
-                        i = ret.index;
-                        output += '<li>' + ret.output + '</li>';
 
                         // Now, recursively search for the two newlines that terminate
                         // the bulleted list
-                        ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                        i = ret.index;
+                        var more = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                             { type: this.MarkdownTokens.Newline, count: 2 },
                         ]);
 
-                        i = ret.index;
-                        output += ret.output + '</ul>';
+                        outputStream.append (
+                            outputStream.unorderedList (
+                                outputStream.listItem (ret.output),
+                                outputStream.listItem (more.output)
+                            )
+                        );
+
+                        i = more.index;
                         break;
                     }
                 }
 
                 // TODO: Method-ize this duplication
                 // Recursively search for the matching set of asterisks
-                var ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                     { type: token.type, count: token.count },
                     { type: this.MarkdownTokens.Newline, count: 1 },
                 ]);
@@ -197,23 +273,23 @@ BiteNuker.prototype = {
                 // found our matching asterisk.
 
                 if (ret.token.type != token.type || !ret.reachedTerminus) {
-                    output += token.str + ret.output;
+                    outputStream.append (token.str, ret.output);
                     i = ret.index - 1; // ensure the last token is reparsed
                     break;
                 }
 
                 i = ret.index;
                 if (token.count == 1)
-                    output += '<em>' + ret.output + '</em>';
+                    outputStream.append (outputStream.italic (ret.output));
                 else if (token.count == 2)
-                    output += '<strong>' + ret.output + '</strong>';
+                    outputStream.append (outputStream.bold (ret.output));
                 else if (token.count == 3)
-                    output += '<em><strong>' + ret.output + '</strong></em>';
+                    outputStream.append (outputStream.italic (outputStream.bold (ret.output)));
                 break;
             case this.MarkdownTokens.Hyphen:
                 // TODO: Method-ize this duplication
                 // Recursively search for the matching set of hyphens
-                var ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                     { type: token.type, count: token.count },
                     { type: this.MarkdownTokens.Newline, count: 1 },
                 ]);
@@ -223,13 +299,13 @@ BiteNuker.prototype = {
                 // found our matching hyphen.
 
                 if (ret.token.type != token.type || !ret.reachedTerminus) {
-                    output += token.str + ret.output;
+                    outputStream.append (token.str, ret.output);
                     i = ret.index - 1; // ensure the last token is reparsed
                     break;
                 }
 
                 i = ret.index;
-                output += '<strike>' + ret.output + '</strike>';
+                outputStream.append (outputStream.strikeout (ret.output));
                 break;
             case this.MarkdownTokens.Backslash:
                 // ignore
@@ -237,7 +313,7 @@ BiteNuker.prototype = {
             case this.MarkdownTokens.Backtick:
                 // TODO: Method-ize this duplication
                 // Recursively search for the matching set of backticks
-                var ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                     { type: token.type, count: token.count },
                     { type: this.MarkdownTokens.Newline, count: 1 },
                 ]);
@@ -247,18 +323,18 @@ BiteNuker.prototype = {
                 // found our matching backticks.
 
                 if (ret.token.type != token.type || !ret.reachedTerminus) {
-                    output += token.str + ret.output;
+                    outputStream.append (token.str, ret.output);
                     i = ret.index - 1; // ensure the last token is reparsed
                     break;
                 }
 
                 i = ret.index;
-                output += '<tt>' + ret.output + '</tt>';
+                outputStream.append (outputStream.code (ret.output));
                 break;
             case this.MarkdownTokens.Pound:
                 // TODO: Method-ize this duplication
                 // Recursively search for the matching set of pounds
-                var ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                     { type: token.type, count: token.count },
                     { type: this.MarkdownTokens.Newline, count: 1 },
                 ]);
@@ -268,28 +344,28 @@ BiteNuker.prototype = {
                 // found our matching pounds.
 
                 if (ret.token.type != token.type || !ret.reachedTerminus) {
-                    output += token.str + ret.output;
+                    outputStream.append (token.str, ret.output);
                     i = ret.index - 1; // ensure the last token is reparsed
                     break;
                 }
 
                 i = ret.index;
                 if (token.count == 1)
-                    output += '<h1>' + ret.output + '</h1>';
+                    outputStream.append (outputStream.huge (ret.output));
                 else if (token.count == 2)
-                    output += '<h2>' + ret.output + '</h2>';
+                    outputStream.append (outputStream.big (ret.output));
                 else if (token.count == 3)
-                    output += '<small>' + ret.output + '</small>';
+                    outputStream.append (outputStream.small (ret.output));
                 break;
             case this.MarkdownTokens.Apostrophe:
                 if (token.count < 3) {
-                    output += token.str;
+                    outputStream.append (token.str);
                     break;
                 }
 
                 // TODO: Method-ize this duplication
                 // Recursively search for the matching set of apostrophes
-                var ret = this._parseMarkdownRecursive (tokens, i + 1, [
+                var ret = this._parseMarkdownRecursive (streamFactory, tokens, i + 1, [
                     { type: token.type, count: token.count },
                     { type: this.MarkdownTokens.Newline, count: 1 },
                 ]);
@@ -299,40 +375,44 @@ BiteNuker.prototype = {
                 // found our matching apostrophes.
 
                 if (ret.token.type != token.type || !ret.reachedTerminus) {
-                    output += token.str + ret.output;
+                    outputStream.append (token.str, ret.output);
                     i = ret.index - 1; // ensure the last token is reparsed
                     break;
                 }
 
                 i = ret.index;
-                output += '<span style="background-color: rgb(255, 255, 0);">'
-                          + ret.output + '</span>';
+                outputStream.append (outputStream.highlight (ret.output));
                 break;
             case this.MarkdownTokens.Newline:
-                output += '<br>' + token.str;
+                outputStream.append (
+                    outputStream.pageBreak (), token.str
+                );
                 break;
             case this.MarkdownTokens.Whitespace:
                 if (token.count > 1)
-                    output += ' ' + new Array (token.count - 1).join ('&nbsp;');
+                    outputStream.appendSpaces (token.count);
                 else
-                    output += token.str;
+                    outputStream.append (token.str);
                 break;
             case this.MarkdownTokens.Word:
             default:
-                output += token.str;
+                outputStream.append (token.str);
                 break;
             }
             i++;
         }
 
         return {
-            output: output, index: i, reachedTerminus: false, token: token,
+            output: outputStream, index: i, reachedTerminus: false, token: token,
         };
     },
 
     convertToHtml : function (markdown) {
+        var streamFactory = function () {
+            return new HtmlOutputStream ();
+        };
         var tokens = this._scanMarkdown (markdown);
-        var ret = this._parseMarkdownRecursive (tokens, 0, []);
+        var ret = this._parseMarkdownRecursive (streamFactory, tokens, 0, []);
         return (ret && 'output' in ret) ? ret.output : '';
     }
 };
