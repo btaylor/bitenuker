@@ -84,7 +84,7 @@ BiteNuker.prototype = {
                 type = this.MarkdownTokens.Pound;
                 break;
             case '\'':
-                type = this.MarkdownTokens.Hyphen;
+                type = this.MarkdownTokens.Apostrophe;
                 break;
             case ' ':
                 type = this.MarkdownTokens.Whitespace;
