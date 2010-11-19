@@ -127,12 +127,6 @@ BiteNuker.prototype = {
         var outputStream = streamFactory ();
         var token = null;
 
-        var insideAsterisk = false;
-        var insideHyphen = false;
-        var insideBacktick = false;
-        var insidePound = false;
-        var insideApostrophe = false;
-
         while (i < tokens.length) {
             token = tokens[i];
 
