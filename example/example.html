@@ -64,6 +64,73 @@ Bullets<br />
 -->
 
     <script type="text/javascript" src="../bitenuker.js"></script>
+    <script type="text/javascript">
+        CKEDITOR.config.toolbar_None = [];
+        // Enabling this will remove the ugly theme
+        //CKEDITOR.config.plugins = 'wysiwygarea,htmldataprocessor';
+        CKEDITOR.config.toolbarCanCollapse = false;
+
+        CKEDITOR.replace ('editor', {
+            skin : 'v2',
+        });
+
+        CKEDITOR.htmlDataProcessor = function (editor) {
+            this.editor = editor;
+            this.writer = new CKEDITOR.htmlWriter ();
+            this.dataFilter = new CKEDITOR.htmlParser.filter ();
+            this.htmlFilter = new CKEDITOR.htmlParser.filter ();
+        };
+
+        CKEDITOR.htmlDataProcessor.prototype = {
+            /*
+             * Returns a string representing the HTML format of "data". The returned
+             * value will be loaded in the editor.
+             * The HTML must be from <html> to </html>, eventually including
+             * the DOCTYPE.
+             *     @param {String} data The data to be converted in the
+             *            DataProcessor specific format.
+             */
+            toHtml: function (data, fixForBody) {
+                var nuker = new BiteNuker ();
+                var html = nuker.convertToHtml (data);
+
+                alert (html);
+                return html;
+
+//                return data.replace (/\n/g, '<br />')
+//                           .replace (/\*\*\*(\w+)\*\*\*/g, '<span style="background-color: rgb\(255, 255, 0\);">$1</span>')
+//                           .replace (/\*\*(\w+)\*\*/g, '<strong>$1</strong>')
+//                           .replace (/\*(\w+)\*/g, '<em>$1</em>')
+//                           .replace (/`([^\n`]+)`/g, '<tt>$1</tt>')
+//                           .replace (/-([^\n-]+)-/g, '<strike>$1</strike>')
+//                           .replace (/###([^\n]+)###/g, '<small>$1</small>')
+//                           .replace (/##([^\n]+)##/g, '<h2>$1</h2>')
+//                           .replace (/#([^\n]+)#/g, '<h1>$1</h1>')
+//                ;
+            },
+
+            /*
+             * Converts a DOM (sub-)tree to a string in the data format.
+             *     @param {Object} rootNode The node that contains the DOM tree to be
+             *            converted to the data format.
+             *     @param {Boolean} excludeRoot Indicated that the root node must not
+             *            be included in the conversion, only its children.
+             */
+            toDataFormat: function (html, fixForBody) {
+                // XXX: This needs to be done with an actual parser, not regex.
+                return html.replace (/<br ?\/?>/g, '\n')
+                           .replace (/<span style="background-color: rgb\(255, 255, 0\);">([^>]*)<\/span>/, '***$1***')
+                           .replace (/<\/?strong>/g, '**')
+                           .replace (/<\/?em>/g, '*')
+                           .replace (/<\/?tt>/g, '`')
+                           .replace (/<\/?strike>/g, '-')
+                           .replace (/<\/?small>/g, '###')
+                           .replace (/<\/?h2>/g, '##')
+                           .replace (/<\/?h1>/g, '#')
+                ;
+            },
+        };
+    </script>
     <input type="button" onclick="alert (CKEDITOR.instances.editor.getData ());" value="Get Data"/>
     </form>
 </body>
