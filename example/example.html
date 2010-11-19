@@ -92,7 +92,10 @@ Bullets<br />
              */
             toHtml: function (data, fixForBody) {
                 var nuker = new BiteNuker ();
-                var html = nuker.convertToHtml (data);
+                var streamFactory = function () {
+                    return new HtmlOutputStream ();
+                };
+                var html = nuker.convertTo (streamFactory, data);
 
                 alert (html);
                 return html;

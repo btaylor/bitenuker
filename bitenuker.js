@@ -18,79 +18,6 @@
 // TODO: Jquery-ize
 // TODO: More 30 Rock quotes
 
-function HtmlOutputStream () {
-    this._init ();
-}
-
-HtmlOutputStream.prototype = {
-    _init : function () {
-        this._output = '';
-    },
-
-    toString : function () {
-        return this._output;
-    },
-
-    append : function () {
-        this._output += Array.prototype.slice.call (arguments).join ('');
-    },
-
-    appendSpaces : function (count) {
-        this.append (' ', new Array (count - 1).join ('&nbsp;'));
-    },
-
-    pageBreak : function () {
-        return '<br>';
-    },
-
-    bold : function (inner) {
-        return ['<strong>', inner, '</strong>'].join ();
-    },
-
-    italic : function (inner) {
-        return ['<em>', inner, '</em>'].join ();
-    },
-
-    strikeout : function (inner) {
-        return ['<strikeout>', inner, '</strikeout>'].join ();
-    },
-
-    highlight : function (inner) {
-        return [
-            '<span style="background-color: rgb(255, 255, 0);">',
-            inner, '</span>'
-        ].join ();
-    },
-
-    code : function (inner) {
-        return ['<tt>', inner, '</tt>'].join ();
-    },
-
-    small : function (inner) {
-        return ['<small>', inner, '</small>'].join ();
-    },
-
-    normal : function (inner) {
-        return inner;
-    },
-
-    big : function (inner) {
-        return ['<h2>', inner, '</h2>'].join ();
-    },
-
-    huge : function (inner) {
-        return ['<h1>', inner, '</h1>'].join ();
-    },
-
-    unorderedList : function () {
-        return ['<ul>', Array.prototype.slice.call (arguments).join (''), '</ul>'].join ();
-    },
-
-    listItem : function (inner) {
-        return ['<li>', Array.prototype.slice.call (arguments).join(''), '</li>'].join ();
-    }
-};
-
 function BiteNuker () {
     this._init ();
 }
@@ -407,13 +334,83 @@ BiteNuker.prototype = {
         };
     },
 
-    convertToHtml : function (markdown) {
-        var streamFactory = function () {
-            return new HtmlOutputStream ();
-        };
+    convertTo : function (streamFactory, markdown) {
         var tokens = this._scanMarkdown (markdown);
         var ret = this._parseMarkdownRecursive (streamFactory, tokens, 0, []);
         return (ret && 'output' in ret) ? ret.output : '';
+    }
+};
+
+function HtmlOutputStream () {
+    this._init ();
+}
+
+HtmlOutputStream.prototype = {
+    _init : function () {
+        this._output = '';
+    },
+
+    toString : function () {
+        return this._output;
+    },
+
+    append : function () {
+        this._output += Array.prototype.slice.call (arguments).join ('');
+    },
+
+    appendSpaces : function (count) {
+        this.append (' ', new Array (count - 1).join ('&nbsp;'));
+    },
+
+    pageBreak : function () {
+        return '<br>';
+    },
+
+    bold : function (inner) {
+        return ['<strong>', inner, '</strong>'].join ('');
+    },
+
+    italic : function (inner) {
+        return ['<em>', inner, '</em>'].join ('');
+    },
+
+    strikeout : function (inner) {
+        return ['<strikeout>', inner, '</strikeout>'].join ('');
+    },
+
+    highlight : function (inner) {
+        return [
+            '<span style="background-color: rgb(255, 255, 0);">',
+            inner, '</span>'
+        ].join ('');
+    },
+
+    code : function (inner) {
+        return ['<tt>', inner, '</tt>'].join ('');
+    },
+
+    small : function (inner) {
+        return ['<small>', inner, '</small>'].join ('');
+    },
+
+    normal : function (inner) {
+        return inner;
+    },
+
+    big : function (inner) {
+        return ['<h2>', inner, '</h2>'].join ('');
+    },
+
+    huge : function (inner) {
+        return ['<h1>', inner, '</h1>'].join ('');
+    },
+
+    unorderedList : function () {
+        return ['<ul>', Array.prototype.slice.call (arguments).join (''), '</ul>'].join ('');
+    },
+
+    listItem : function (inner) {
+        return ['<li>', Array.prototype.slice.call (arguments).join(''), '</li>'].join ('');
     }
 };
 
